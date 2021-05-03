@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Font Awesome -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"
+      rel="stylesheet"
+    />
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- MDB -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/3.3.0/mdb.min.css"
+      rel="stylesheet"
+    />
+
+    <title>retroTube</title>
+
+    <style>
+    body { 
+        background: #111;
+        font-family: "Lucida Console", "Courier New", monospace;
+    }
+
+    h1 {
+       color: #eee;
+       font-size: 2.5em;
+       line-height: 1;
+       text-shadow: 0.06rem 0 0.06rem #ea36af, -0.125rem 0 0.06rem #75fa69;
+       letter-spacing: 0.125em;
+       animation-duration: 0.0001s;
+       animation-name: textflicker;
+       animation-iteration-count: infinite;
+       animation-direction: alternate;
+    }
+
+    @keyframes textflicker {
+      from {
+        text-shadow: 1px 0 0 #ea36af, -2px 0 0 #75fa69;
+      }
+      to {
+        text-shadow: 0.5px 0.5px 2px #ea36af, -1px -0.5px 0.5px #75fa69;
+      }
+    }
+
+    ul {
+        list-style-type: none;
+    }
+
+    li p {
+        color: white;
+        backgruond-color: black;        
+    }
+
+    .bgcolor:hover {
+        background-color: LightGrey;
+    }
+
+    .selected {
+        background-color: DarkSlateGrey;
+    }
+
+    .selected:hover {
+        background-color: LightGrey;
+    }
+
+    .selected li p {
+        color: LawnGreen;
+    }
+
+    .selected li p:hover {
+        color:  black;
+    }
+
+    li:hover {
+        cursor: pointer;
+    }
+
+    li:hover p {
+        color: black;
+    }
+    </style>
+
+  </head>
+
+  <body>
+
+    <header>
+      <!-- Heading navbar -->
+      <nav class="navbar navbar-light bg-light">
+        <span class="navbar-brand ms-3 mb-0 h1">rt.io</span>
+      </nav>
+    </header>
+
+    <div class="container-fluid mt-3">
+      <div class="row">
+        <div class="col-sm">
+          <h1 id="rT" onclick="ouch(this)">retroTube</h1>
+        </div>
+      </div>
+      <div id="buscador" class="row" style="visibility: hidden;">
+        <div class="col py-2">
+          <div class="form-outline form-white">
+              <input type="text" class="form-control" id="input-playlist" aria-describedby="playlistHelp" value="PLLAr3VereViAANxEUe5uRcn7wuwG77bJ8" onclick="this.value = '';">
+              <label for="input-playlist" class="form-label">agrega el ID de la playlist</label>
+          </div>
+        </div>
+        <div class="col-md-auto py-2">
+          <button type="button" class="btn btn-light btn-block" onclick="agregaPlaylist()">Agregar playlist</button>
+        </div>
+      </div>    
+      <div id="mensaje-inicial" class="row mt-2">
+        <h5>Espera, estamos preparando todo, si no desaparece este mensaje recarga la página.</h5>
+      </div>
+      <div class="row mt-2">
+        <div id="player" class="col-sm py-3" style="display: none;">
+          <!-- iframe
+            aquí se colocará el iframe creado por la API asíncrona para iframes de youtube
+          -->
+        </div>
+        <div class="col-sm py-3" style="max-height: 400px; overflow: auto;">
+          <ul id="contenido"></ul>
+        </div>
+      </div>
+    </div>
+
+    <footer class="navbar fixed-bottom bg-dark text-center text-white">
+        <div class="container-fluid justify-content-center">
+          TSIS - UAM
+        </div>
+    </footer>
+
+
+    <!-- MDB este script carga el framework de mdbootstrap 4 mediante el uso de CDN-->
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/3.3.0/mdb.min.js"
+    ></script>
+
+    <!-- Este script contiene las funciones que controlan la animación del brandname retroTube -->
+    <script>
+      function ouch(el){
+        if(el.innerHTML != "ouch! x_x"){
+          el.innerHTML = "ouch! x_x";
+          clearInterval(barraInter);
+        }        
+        else{
+          el.innerHTML = "retroTube ";
+          barraInter = setInterval(agregarBarra, 500);
+        }
+      }
+
+      function agregarBarra(){
+        var retroTube = document.getElementById("rT");
+        if(retroTube.innerHTML == "retroTube"){
+          document.getElementById("rT").innerHTML += "&#9647;";
+        }
+        else{
+          document.getElementById("rT").innerHTML = "retroTube";
+        }
+      }
+
+      var barraInter = setInterval(agregarBarra, 500);
+    </script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://apis.google.com/js/client.js?onload=function"></script>
+
+    <!-- Este script conteiene las funciones que se comunican con el API
+      de youtube (iframe API y v3 para playlist). Además, continene los métodos
+      encargados del control de la interfaz (cambio de canción, carga de playlist,
+      creación del iframe, etc...) -->
+    <script>
+        /** 
+         * Conexión con iframe API de youtube
+         **/
+        // Se carga el código de 'IFrame Player API asynchronously'.
+        var tag = document.createElement('script');
+
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        // Se crea un <iframe> (y un objeto de la clase YouTube player)
+
+        // Una vez que se cargó el código de 'IFrame Player API asynchronously'.
+        var player;
+        function onYouTubeIframeAPIReady() {
+          player = new YT.Player('player', {
+            height: '360',
+            width: '640',
+            videoId: 'M7lc1UVf-VE',
+            events: {
+              'onReady': onPlayerReady,
+              'onStateChange': onPlayerStateChange
+            }
+          });
+        }
+
+
+        // Callback: cuando el player esté listo...
+        function onPlayerReady(event) {
+          console.log("player listo");
+          setTimeout(function(){
+            document.getElementById("mensaje-inicial").style.display = "none";//quitamos el mensaje
+            document.getElementById("buscador").style.visibility = "visible";//mostramos el buscador
+          }, 3000);
+          document.getElementById("mensaje-inicial").children[0].innerHTML = "Player listo :D";//Avisamos en pantalla que el player está listo
+        }
+
+
+        // Callback: cuando el player cambie de estado... 
+        function onPlayerStateChange(event) {
+          console.log("player cambio estado: " + event.data);
+
+          //Si el video terminó
+          if (event.data == YT.PlayerState.ENDED) {
+            //buscamos el id del video actual del player
+            var video_id = player.getVideoData()['video_id'];
+
+            //buscamos el id del video actual en el id de cada li (por construcción el li tiene el mismo id del vídeo)
+            var liList = document.getElementsByTagName("li");
+            var actualLi //variable para almacenar la posición del li actual
+            for(i = 0; i < liList.length; i++){
+              console.log("video embebido: " + video_id);
+              console.log("liList: " + liList[i].id);
+              if(video_id == liList[i].id){
+                actualLi = i;//guardamos su posición
+                console.log("actualLi: " + actualLi);
+              }
+            }
+            //cargamos el siguiente video en el player
+            player.loadVideoById({videoId: liList[actualLi + 1].id})
+
+            //cambiamos estilo a bgcolor del video anterior
+            liList[actualLi].parentNode.classList.remove("selected");
+            liList[actualLi].parentNode.classList.add("bgcolor");
+
+            //cambiamos estilo del video actual a selected
+            liList[actualLi + 1].parentNode.classList.remove("bgcolor");
+            liList[actualLi + 1].parentNode.classList.add("selected");
+          }
+        }
+
+
+        /**
+         * Conexión con API v3 de youtube
+         **/
+        function agregaPlaylist(){
+            // URL del API de youtube
+            var URL="https://content.googleapis.com/youtube/v3/playlistItems";
+            // ID del playlist
+            //var playlistID = "PLLAr3VereViAANxEUe5uRcn7wuwG77bJ8";
+            var playlistID = document.getElementById("input-playlist").value;
+            // Llave obtenida de google
+            var APIKey = "AIzaSyCsVgutGwH1_c9BEq2LMxyv8SRP6uo4VCY";
+            // Invocación AJAX
+            $.get(URL, "playlistId=" + playlistID + "&maxResults=50&part=id,snippet&key=" + APIKey, cargaPlaylist);
+
+
+            // Callback. Playlist es un objeto que contiene otros objetos que son las entradas de la lista
+            function cargaPlaylist(playlist){
+                // Este mensaje aparece en la consola de desarrollo de JavaScript en el navegador
+                console.log("Encontré lista con "+playlist.items.length+"elementos");
+
+                // Elimino el contenido actual de la lista
+                document.getElementById("contenido").innerHTML = "";
+                // Recorre los objetos de la playlist y genera la lista
+                var i;
+                for (i=0; i < playlist.items.length; i++){
+                  var element = playlist.items[i];
+                  //verificamos si el video no ha sido eliminado ¡¡¡Importante!!!
+                  if(element.snippet.title != "Deleted video"){//en caso contrario (el vídeo no ha sido eliminado)
+                    var estilo = "class='bgcolor'"//estilo por defecto para cada li
+                    //si es el primer vídeo...
+                    if(i == 0){
+                      //lo cargamos al player
+                      player.loadVideoById({videoId: element.snippet.resourceId.videoId})
+                      //cambiamos el estilo por defecto a selected
+                      estilo = "class='selected'"
+                    }
+                    //construimos el elemento de la ul y lo agregamos al elemento del documento con id contenido
+                    $("#contenido").append($("<div " + estilo
+                                             + "><li class='d-flex justify-content-between align-items-start'"
+                                             + " onclick='cambiaCancion(this)' id='" + 
+                                             element.snippet.resourceId.videoId + "'>"
+                                             + "<img src='" + element.snippet.thumbnails.default.url + "' "
+                                             + "class='img-fluid'/>"
+                                             + "<p class='ms-3'"
+                                             + ">" + 
+                                             element.snippet.title + "</p></li></div>"));
+                  }
+                }
+            }
+            //mostramos el player ;)
+            document.getElementById("player").style.display = "block";
+        }
+
+
+        /**
+         * Lógica de cambiar canción
+         **/
+        function cambiaCancion(li){
+          //cambiar el estilo de los div padres de los li a la clase bgcolor
+          var liList = document.getElementsByTagName("li");
+          for(i = 0; i < liList.length; i++){
+            var el = liList[i].parentNode;
+            el.classList.remove("selected");
+            el.classList.add("bgcolor");
+          }
+
+          //obtener el id del siguiente video (por construcción es el id del elemento li)
+          var nextVideoId = li.id;
+          //cargar video en el player
+          player.loadVideoById({videoId: nextVideoId});
+          //cambiar el estilo del div padre del li correspondiente al video actual a selected;
+          li.parentNode.classList.remove("bgcolor");
+          li.parentNode.classList.add("selected");
+        }
+    </script>
+
+  </body>
+</html>
