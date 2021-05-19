@@ -256,9 +256,25 @@
         function agregaPlaylist(){
             // URL del API de youtube
             var URL="https://content.googleapis.com/youtube/v3/playlistItems";
-            // ID del playlist
-            //var playlistID = "PLLAr3VereViAANxEUe5uRcn7wuwG77bJ8";
+            // URL que contiene el ID del playlist
             var playlistID = document.getElementById("input-playlist").value;
+            //verificar si la palabra list=
+            if (playlistID.includes("list=")){
+                var a = playlistID.search("list=");
+                var ini = a + 5;
+                if (playlistID.includes("&start")){
+                  var fin = playlistID.search("&start");
+                  playlistID = playlistID.substring(ini,fin);
+                }
+                else{
+                  var fin = playlistID.length;
+                  playlistID = playlistID.substring(ini,fin);
+                }
+            }
+            else {
+              //lanzar excepción
+              //avisar al usuario
+            }
             // Llave obtenida de google
             var APIKey = "AIzaSyCsVgutGwH1_c9BEq2LMxyv8SRP6uo4VCY";
             // Invocación AJAX
